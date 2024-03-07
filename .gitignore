@@ -2,6 +2,6 @@
 target/
 .idea
 .mvn
-*mvnw
+*mvnw*
 *.log
 *.iml
