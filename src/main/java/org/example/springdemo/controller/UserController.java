@@ -4,12 +4,13 @@ import org.example.springdemo.model.User;
 import org.example.springdemo.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:8081")
+@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api")
 public class UserController {
@@ -20,6 +21,7 @@ public class UserController {
     }
 
     @GetMapping("/users")
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     public ResponseEntity<List<User>> getAllUsers() {
         try {
             List<User> users = new ArrayList<>(userService.findAll());
@@ -35,6 +37,7 @@ public class UserController {
     }
 
     @GetMapping("/users/{id}")
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     public ResponseEntity<User> getUserById(@PathVariable("id") long id) {
         User user = userService.findById(id);
 
@@ -45,22 +48,13 @@ public class UserController {
         }
     }
 
-    @PostMapping("/users")
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        try {
-            User createdUser = userService.save(new User(user.getName()));
-            return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
     @PutMapping("/users/{id}")
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     public ResponseEntity<User> updateUser(@PathVariable("id") long id, @RequestBody User user) {
         User actualUser = userService.findById(id);
 
         if (actualUser != null) {
-            actualUser.setName(user.getName());
+            actualUser.setUsername(user.getUsername());
             return new ResponseEntity<>(userService.save(actualUser), HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -68,6 +62,7 @@ public class UserController {
     }
 
     @DeleteMapping("/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<HttpStatus> deleteUser(@PathVariable("id") long id) {
         try {
             userService.deleteById(id);
@@ -78,6 +73,7 @@ public class UserController {
     }
 
     @DeleteMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<HttpStatus> deleteAllUsers() {
         try {
             userService.deleteAll();

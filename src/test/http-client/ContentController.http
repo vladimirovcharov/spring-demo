@@ -1,0 +1,13 @@
+http://localhost:8080/api/content/all
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+
+    client.test("Headers option exists", function() {
+        client.assert(response.body == "Public Content.", "Wrong response body");
+    });
+%}
+
+
