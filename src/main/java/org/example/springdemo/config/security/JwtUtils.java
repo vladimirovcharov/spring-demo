@@ -1,81 +1,75 @@
 package org.example.springdemo.config.security;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.example.springdemo.service.security.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.WebUtils;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 @Component
 public class JwtUtils {
-    private static final Logger LOGGER = LoggerFactory.getLogger(JwtUtils.class);
-    private static final int MAX_COOKIE_AGE_SECONDS = 24 * 60 * 60;
-    private static final String PATH = "/api";
-
     @Value("${app.jwtSecret}")
     private String jwtSecret;
 
     @Value("${app.jwtExpirationMs}")
     private int jwtExpirationMs;
 
-    @Value("${app.jwtCookieName}")
-    private String jwtCookie;
-
-    public String getJwtFromCookies(HttpServletRequest request) {
-        Cookie cookie = WebUtils.getCookie(request, jwtCookie);
-        return cookie != null ? cookie.getValue() : null;
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        return getUsernameFromToken(token).equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
-    public ResponseCookie generateJwtCookie(UserDetails userDetails) {
-        String jwt = generateTokenFromUsername(userDetails.getUsername());
-        return ResponseCookie.from(jwtCookie, jwt).path(PATH).maxAge(MAX_COOKIE_AGE_SECONDS).httpOnly(true).build();
+    public String getUsernameFromToken(String token) {
+        return getClaim(token, Claims::getSubject);
     }
 
-    public ResponseCookie getCleanJwtCookie() {
-        return ResponseCookie.from(jwtCookie).path(PATH).build();
+    private Boolean isTokenExpired(String token) {
+        return getExpirationFromToken(token).before(new Date());
     }
 
-    public String getUserNameFromJwtToken(String token) {
-        return Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(token).getBody().getSubject();
+    private Date getExpirationFromToken(String token) {
+        return getClaim(token, Claims::getExpiration);
     }
 
-    private Key key() {
+    private <T> T getClaim(String token, Function<Claims, T> claimsResolver) {
+        Claims payload = Jwts.parser()
+                .verifyWith(getKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        return claimsResolver.apply(payload);
+    }
+
+    private SecretKey getKey() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }
 
-    public boolean validateJwtToken(String authToken) {
-        try {
-            Jwts.parserBuilder().setSigningKey(key()).build().parse(authToken);
-            return true;
-        } catch (MalformedJwtException e) {
-            LOGGER.error("Invalid JWT token: {}", e.getMessage());
-        } catch (ExpiredJwtException e) {
-            LOGGER.error("JWT token is expired: {}", e.getMessage());
-        } catch (UnsupportedJwtException e) {
-            LOGGER.error("JWT token is unsupported: {}", e.getMessage());
-        } catch (IllegalArgumentException e) {
-            LOGGER.error("JWT claims string is empty: {}", e.getMessage());
-        }
-
-        return false;
+    public String generateToken(UserDetailsImpl userDetails) {
+        return Jwts.builder()
+                .header()
+                .type("JWT")
+                .and()
+                .subject(userDetails.email())
+                .claims(generateClaims(userDetails))
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(getKey())
+                .compact();
     }
 
-    public String generateTokenFromUsername(String username) {
-        return Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
-                .signWith(key(), SignatureAlgorithm.HS256)
-                .compact();
+    private Map<String, ?> generateClaims(UserDetailsImpl userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("user_id", userDetails.id());
+
+        return claims;
     }
 }

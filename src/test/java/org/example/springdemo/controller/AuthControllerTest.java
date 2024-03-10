@@ -18,9 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -37,7 +35,8 @@ import static org.example.springdemo.model.security.Roles.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc
 @SpringBootTest
@@ -46,8 +45,7 @@ class AuthControllerTest {
     private static final String API_AUTH_SIGNUP = "/api/auth/signup";
     private static final String API_AUTH_SIGNOUT = "/api/auth/signout";
     private static final String SIGN_OUT_MESSAGE = "You've been signed out!";
-    private static final String JWT_TEST_COOKIE = "jwtTestCookie";
-    private static final String JWT_TEST_COOKIE_VALUE = "jwtTestCookieValue";
+    private static final String JWT_TEST_TOKEN_VALUE = "jwtTestTokenValue";
     private static final String REGISTERED_USER_MESSAGE = "User registered successfully!";
     private static final String ENCODED_PASSWORD = "encodedPassword";
     private static final String ERROR_USERNAME_IS_ALREADY_TAKEN = "Error: Username is already taken!";
@@ -86,18 +84,17 @@ class AuthControllerTest {
 
         when(userDetailsService.loadUserByUsername(userDetails.getUsername())).thenReturn(userDetails);
 
-        ResponseCookie jwtCookie = ResponseCookie.from(JWT_TEST_COOKIE, JWT_TEST_COOKIE_VALUE).httpOnly(true).build();
-        when(jwtUtils.generateJwtCookie(userDetails)).thenReturn(jwtCookie);
+        when(jwtUtils.generateToken(userDetails)).thenReturn(JWT_TEST_TOKEN_VALUE);
 
         mockMvc.perform(post(API_AUTH_SIGNIN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"user\",\"password\":\"password\"}"))
                 .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.SET_COOKIE, jwtCookie.toString()))
                 .andExpect(jsonPath("$.id").value(userDetails.id()))
                 .andExpect(jsonPath("$.username").value(userDetails.username()))
                 .andExpect(jsonPath("$.email").value(userDetails.email()))
-                .andExpect(jsonPath("$.roles").value("USER"));
+                .andExpect(jsonPath("$.roles").value("USER"))
+                .andExpect(jsonPath("$.token").value(JWT_TEST_TOKEN_VALUE));
     }
 
     @ParameterizedTest
@@ -170,16 +167,10 @@ class AuthControllerTest {
     @Test
     @WithMockUser
     public void shouldLogoutUser() throws Exception {
-        ResponseCookie jwtCookie = ResponseCookie.from(JWT_TEST_COOKIE, "").build();
-        when(jwtUtils.getCleanJwtCookie()).thenReturn(jwtCookie);
-
         mockMvc.perform(post(API_AUTH_SIGNOUT)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.SET_COOKIE, jwtCookie.toString()))
                 .andExpect(jsonPath("$.message").value(SIGN_OUT_MESSAGE));
-
-        verify(jwtUtils).getCleanJwtCookie();
     }
 
     private UserDetailsImpl buildUserDetails() {
