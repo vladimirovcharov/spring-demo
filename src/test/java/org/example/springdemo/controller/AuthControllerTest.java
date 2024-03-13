@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.springdemo.annotation.WithMockUser;
 import org.example.springdemo.config.security.JwtUtils;
 import org.example.springdemo.model.User;
+import org.example.springdemo.model.request.LoginRequest;
 import org.example.springdemo.model.request.SignupRequest;
 import org.example.springdemo.model.security.Role;
 import org.example.springdemo.repository.UserRepository;
@@ -197,6 +198,70 @@ class AuthControllerTest extends AbstractAuthTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").value(ERROR_USERNAME_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailLoginIfUsernameEmpty() throws Exception {
+        LoginRequest request = LoginRequest.builder().username("")
+                .password("password").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNIN).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_USERNAME_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailLoginIfUsernameBlank() throws Exception {
+        LoginRequest request = LoginRequest.builder().username(" ")
+                .password("password").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNIN).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_USERNAME_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailLoginIfUsernameNull() throws Exception {
+        LoginRequest request = LoginRequest.builder().password("password").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNIN).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_USERNAME_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailLoginIfPasswordEmpty() throws Exception {
+        LoginRequest request = LoginRequest.builder().username("username")
+                .password("").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNIN).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_PASSWORD_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailLoginIfPasswordBlank() throws Exception {
+        LoginRequest request = LoginRequest.builder().username("username")
+                .password(" ").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNIN).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_PASSWORD_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailLoginIfPasswordNull() throws Exception {
+        LoginRequest request = LoginRequest.builder().username("username").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNIN).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_PASSWORD_IS_REQUIRED));
     }
 
     @Test
