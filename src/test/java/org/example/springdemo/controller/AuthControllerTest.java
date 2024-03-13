@@ -58,6 +58,8 @@ class AuthControllerTest extends AbstractAuthTest {
     private static final String ERROR_PASSWORD_IS_REQUIRED = "Password is required.";
     private static final String ERROR_EMAIL_IS_NOT_VALID = "Email is not a valid.";
     private static final String ERROR_EMAIL_IS_REQUIRED = "Email is required.";
+    private static final String ERROR_STRONG_PASSWORD = "Must be 8 characters long and combination of uppercase letters, lowercase letters, numbers, special characters.";
+    private static final String ERROR_CONFIRM_PASSWORD = "Password and Confirm Password must be matched!";
 
     @Autowired
     private MockMvc mockMvc;
@@ -138,15 +140,16 @@ class AuthControllerTest extends AbstractAuthTest {
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value(REGISTERED_USER_MESSAGE));
+                .andExpect(jsonPath("$.message").value(REGISTERED_USER_MESSAGE))
+                .andDo(print());
 
         verify(userRepository).save(any(User.class));
     }
 
     @Test
     public void shouldFailRegisterIfUsernameTooShort() throws Exception {
-        SignupRequest request = SignupRequest.builder().username("us")
-                .password("password").email("user@demo.com").build();
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setUsername("us");
 
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -156,8 +159,8 @@ class AuthControllerTest extends AbstractAuthTest {
 
     @Test
     public void shouldFailRegisterIfUsernameTooLong() throws Exception {
-        SignupRequest request = SignupRequest.builder().username("toolongusernametoolongusernametoolongusername")
-                .password("password").email("user@demo.com").build();
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setUsername("toolongusernametoolongusernametoolongusername");
 
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -167,8 +170,8 @@ class AuthControllerTest extends AbstractAuthTest {
 
     @Test
     public void shouldFailRegisterIfUsernameEmpty() throws Exception {
-        SignupRequest request = SignupRequest.builder().username("")
-                .password("password").email("user@demo.com").build();
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setUsername("");
 
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -179,8 +182,8 @@ class AuthControllerTest extends AbstractAuthTest {
 
     @Test
     public void shouldFailRegisterIfUsernameBlank() throws Exception {
-        SignupRequest request = SignupRequest.builder().username(" ")
-                .password("password").email("user@demo.com").build();
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setUsername(" ");
 
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -191,8 +194,8 @@ class AuthControllerTest extends AbstractAuthTest {
 
     @Test
     public void shouldFailRegisterIfUsernameNull() throws Exception {
-        SignupRequest request = SignupRequest.builder()
-                .password("password").email("user@demo.com").build();
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setUsername(null);
 
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -266,42 +269,44 @@ class AuthControllerTest extends AbstractAuthTest {
 
     @Test
     public void shouldFailRegisterIfPasswordBlank() throws Exception {
-        SignupRequest request = SignupRequest.builder().username("username")
-                .password(" ").email("user@demo.com").build();
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setPassword(" ");
 
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").value(ERROR_PASSWORD_IS_REQUIRED));
+                .andExpect(jsonPath("$.errors", containsInAnyOrder(ERROR_STRONG_PASSWORD,
+                        ERROR_CONFIRM_PASSWORD, ERROR_PASSWORD_IS_REQUIRED)));
     }
 
     @Test
     public void shouldFailRegisterIfPasswordEmpty() throws Exception {
-        SignupRequest request = SignupRequest.builder().username("username")
-                .password("").email("user@demo.com").build();
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setPassword("");
 
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").value(ERROR_PASSWORD_IS_REQUIRED));
+                .andExpect(jsonPath("$.errors", containsInAnyOrder(ERROR_STRONG_PASSWORD,
+                        ERROR_CONFIRM_PASSWORD, ERROR_PASSWORD_IS_REQUIRED)));
     }
 
     @Test
     public void shouldFailRegisterIfPasswordNull() throws Exception {
-        SignupRequest request = SignupRequest.builder().username("username")
-                .email("user@demo.com").build();
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setPassword(null);
 
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").value(ERROR_PASSWORD_IS_REQUIRED));
+                .andExpect(jsonPath("$.errors", containsInAnyOrder(ERROR_STRONG_PASSWORD,
+                        ERROR_CONFIRM_PASSWORD, ERROR_PASSWORD_IS_REQUIRED)));
     }
 
     @Test
     public void shouldFailRegisterIfEmailBlank() throws Exception {
-        SignupRequest request = SignupRequest.builder().username("username")
-                .password("password").email(" ").build();
-
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setEmail(" ");
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -311,8 +316,8 @@ class AuthControllerTest extends AbstractAuthTest {
 
     @Test
     public void shouldFailRegisterIfEmailEmpty() throws Exception {
-        SignupRequest request = SignupRequest.builder().username("username")
-                .password("password").email("").build();
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setEmail("");
 
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -322,8 +327,8 @@ class AuthControllerTest extends AbstractAuthTest {
 
     @Test
     public void shouldFailRegisterIfEmailNull() throws Exception {
-        SignupRequest request = SignupRequest.builder().username("username")
-                .password("password").build();
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setEmail(null);
 
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -333,8 +338,8 @@ class AuthControllerTest extends AbstractAuthTest {
 
     @Test
     public void shouldFailRegisterIfEmailNotValid() throws Exception {
-        SignupRequest request = SignupRequest.builder().username("username")
-                .password("password").email("notValidEmail").build();
+        SignupRequest request = buildSignupRequest(Set.of("user"));
+        request.setEmail("notValidEmail");
 
         mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -393,8 +398,8 @@ class AuthControllerTest extends AbstractAuthTest {
     }
 
     private SignupRequest buildSignupRequest(Set<String> roles) {
-        return SignupRequest.builder().username("user")
-                .password("password").email("test@demo.com").roles(roles).build();
+        return SignupRequest.builder().username("user").password("Password1!").confirmPassword("Password1!")
+                .email("test@demo.com").roles(roles).build();
     }
 
     private static Stream<Arguments> registerWithRoles() {
