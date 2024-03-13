@@ -1,5 +1,11 @@
 package org.example.springdemo.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.springdemo.model.User;
 import org.example.springdemo.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -13,6 +19,7 @@ import java.util.List;
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api")
+@Tag(name = "User", description = "User management APIs")
 public class UserController {
     final UserService userService;
 
@@ -35,6 +42,15 @@ public class UserController {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @Operation(
+            summary = "Retrieve a User by Id",
+            description = "Get a User object by specifying its id. The response is User object with id, title, description and published status.",
+            tags = {"users", "get"})
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", content = {@Content(schema = @Schema(implementation = User.class), mediaType = "application/json")}),
+            @ApiResponse(responseCode = "404", content = {@Content(schema = @Schema())}),
+            @ApiResponse(responseCode = "500", content = {@Content(schema = @Schema())})})
 
     @GetMapping("/users/{id}")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
@@ -81,6 +97,5 @@ public class UserController {
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 }
