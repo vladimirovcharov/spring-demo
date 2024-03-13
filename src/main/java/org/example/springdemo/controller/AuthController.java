@@ -13,6 +13,7 @@ import org.example.springdemo.repository.UserRepository;
 import org.example.springdemo.repository.security.RoleRepository;
 import org.example.springdemo.service.security.UserDetailsImpl;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -116,6 +117,7 @@ public class AuthController {
     }
 
     @PostMapping("/signout")
+    @PreAuthorize("hasAnyRole('USER', 'MODERATOR', 'ADMIN')")
     public ResponseEntity<?> logoutUser() {
         //todo: add blacklist for tokens
         return ResponseEntity.ok().body(new MessageResponse("You've been signed out!"));

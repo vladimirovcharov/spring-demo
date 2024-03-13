@@ -35,12 +35,13 @@ import static org.example.springdemo.model.security.Roles.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc
 @SpringBootTest
-class AuthControllerTest {
+class AuthControllerTest extends AbstractAuthTest {
     private static final String API_AUTH_SIGNIN = "/api/auth/signin";
     private static final String API_AUTH_SIGNUP = "/api/auth/signup";
     private static final String API_AUTH_SIGNOUT = "/api/auth/signout";
@@ -162,6 +163,13 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message").value(ERROR_EMAIL_IS_ALREADY_IN_USE));
 
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    public void shouldNotLogoutWithoutUser() throws Exception {
+        mockMvc.perform(post(API_AUTH_SIGNOUT).contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value(AUTHENTICATION_IS_REQUIRED)).andDo(print());
     }
 
     @Test
