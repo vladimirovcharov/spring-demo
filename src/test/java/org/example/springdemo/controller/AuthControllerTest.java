@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.example.springdemo.model.security.Roles.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -51,6 +52,11 @@ class AuthControllerTest extends AbstractAuthTest {
     private static final String ENCODED_PASSWORD = "encodedPassword";
     private static final String ERROR_USERNAME_IS_ALREADY_TAKEN = "Error: Username is already taken!";
     private static final String ERROR_EMAIL_IS_ALREADY_IN_USE = "Error: Email is already in use!";
+    private static final String ERROR_USERNAME_LENGTH = "Username must be from 3 to 20 characters.";
+    private static final String ERROR_USERNAME_IS_REQUIRED = "Username is required.";
+    private static final String ERROR_PASSWORD_IS_REQUIRED = "Password is required.";
+    private static final String ERROR_EMAIL_IS_NOT_VALID = "Email is not a valid.";
+    private static final String ERROR_EMAIL_IS_REQUIRED = "Email is required.";
 
     @Autowired
     private MockMvc mockMvc;
@@ -134,6 +140,141 @@ class AuthControllerTest extends AbstractAuthTest {
                 .andExpect(jsonPath("$.message").value(REGISTERED_USER_MESSAGE));
 
         verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    public void shouldFailRegisterIfUsernameTooShort() throws Exception {
+        SignupRequest request = SignupRequest.builder().username("us")
+                .password("password").email("user@demo.com").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_USERNAME_LENGTH));
+    }
+
+    @Test
+    public void shouldFailRegisterIfUsernameTooLong() throws Exception {
+        SignupRequest request = SignupRequest.builder().username("toolongusernametoolongusernametoolongusername")
+                .password("password").email("user@demo.com").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_USERNAME_LENGTH));
+    }
+
+    @Test
+    public void shouldFailRegisterIfUsernameEmpty() throws Exception {
+        SignupRequest request = SignupRequest.builder().username("")
+                .password("password").email("user@demo.com").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors", containsInAnyOrder(ERROR_USERNAME_IS_REQUIRED,
+                        ERROR_USERNAME_LENGTH)));
+    }
+
+    @Test
+    public void shouldFailRegisterIfUsernameBlank() throws Exception {
+        SignupRequest request = SignupRequest.builder().username(" ")
+                .password("password").email("user@demo.com").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors", containsInAnyOrder(ERROR_USERNAME_IS_REQUIRED,
+                        ERROR_USERNAME_LENGTH)));
+    }
+
+    @Test
+    public void shouldFailRegisterIfUsernameNull() throws Exception {
+        SignupRequest request = SignupRequest.builder()
+                .password("password").email("user@demo.com").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_USERNAME_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailRegisterIfPasswordBlank() throws Exception {
+        SignupRequest request = SignupRequest.builder().username("username")
+                .password(" ").email("user@demo.com").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_PASSWORD_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailRegisterIfPasswordEmpty() throws Exception {
+        SignupRequest request = SignupRequest.builder().username("username")
+                .password("").email("user@demo.com").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_PASSWORD_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailRegisterIfPasswordNull() throws Exception {
+        SignupRequest request = SignupRequest.builder().username("username")
+                .email("user@demo.com").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_PASSWORD_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailRegisterIfEmailBlank() throws Exception {
+        SignupRequest request = SignupRequest.builder().username("username")
+                .password("password").email(" ").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors", containsInAnyOrder(ERROR_EMAIL_IS_REQUIRED,
+                        ERROR_EMAIL_IS_NOT_VALID)));
+    }
+
+    @Test
+    public void shouldFailRegisterIfEmailEmpty() throws Exception {
+        SignupRequest request = SignupRequest.builder().username("username")
+                .password("password").email("").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_EMAIL_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailRegisterIfEmailNull() throws Exception {
+        SignupRequest request = SignupRequest.builder().username("username")
+                .password("password").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_EMAIL_IS_REQUIRED));
+    }
+
+    @Test
+    public void shouldFailRegisterIfEmailNotValid() throws Exception {
+        SignupRequest request = SignupRequest.builder().username("username")
+                .password("password").email("notValidEmail").build();
+
+        mockMvc.perform(post(API_AUTH_SIGNUP).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value(ERROR_EMAIL_IS_NOT_VALID));
     }
 
     @Test

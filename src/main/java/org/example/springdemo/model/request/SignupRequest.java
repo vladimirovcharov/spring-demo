@@ -2,9 +2,7 @@ package org.example.springdemo.model.request;
 
 import java.util.Set;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.*;
 
 @Setter
@@ -13,17 +11,15 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SignupRequest {
-    @NotBlank
-    @Size(min = 3, max = 20)
+    @NotBlank(message = "Username is required.")
+    @Size(min = 3, max = 20, message = "Username must be from 3 to 20 characters.")
     private String username;
 
-    @NotBlank
-    @Size(min = 6, max = 40)
+    @NotBlank(message = "Password is required.")
     private String password;
 
-    @NotBlank
-    @Size(max = 50)
-    @Email
+    @NotBlank(message = "Email is required.")
+    @Email(message = "Email is not a valid.")
     private String email;
 
     private Set<String> roles;
